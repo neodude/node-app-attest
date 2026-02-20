@@ -2,7 +2,7 @@
 
 [![Build][build-shield]][build-url]
 [![Coverage][coverage-shield]][coverage-url]
-[![Language][language-shield]][build-url]
+[![Language][language-shield]][language-url]
 [![MIT License][license-shield]][license-url]
 
 <br />
@@ -69,10 +69,10 @@ APP
 SERVER
 
 ```javascript
-import express from 'express';
-import { v4 as uuid } from 'uuid';
+import express from "express";
+import { v4 as uuid } from "uuid";
 
-app.get('/attest/challenge', (req, res) => {
+app.get("/attest/challenge", (req, res) => {
   const challenge = uuid();
   db.storeChallenge(challenge);
   log.debug(`challange was requested, returning ${challenge}`);
@@ -131,17 +131,17 @@ Using the DCAppAttestService, the app generates a keyId. With the challenge and 
 SERVER
 
 ```javascript
-import { verifyAttestation, verifyAssertion } from 'node-app-attest';
+import { verifyAttestation, verifyAssertion } from "node-app-attest";
 app.post(`${API_PREFIX}/attest/verify`, (req, res) => {
   try {
     log.debug(`verify was requested: ${JSON.stringify(req.body, null, 2)}`);
 
     if (!db.findChallenge(req.body.challenge)) {
-      throw new Error('Invalid challenge');
+      throw new Error("Invalid challenge");
     }
 
     const result = verifyAttestation({
-      attestation: Buffer.from(req.body.attestation, 'base64'),
+      attestation: Buffer.from(req.body.attestation, "base64"),
       challenge: req.body.challenge,
       keyId: req.body.keyId,
       bundleIdentifier: BUNDLE_IDENTIFIER,
@@ -151,13 +151,17 @@ app.post(`${API_PREFIX}/attest/verify`, (req, res) => {
 
     log.debug(`attestation result: ${JSON.stringify(result, null, 2)}`);
 
-    db.storeAttestation({ keyId: req.body.keyId, publicKey: result.publicKey, signCount: 0 });
+    db.storeAttestation({
+      keyId: req.body.keyId,
+      publicKey: result.publicKey,
+      signCount: 0,
+    });
 
     res.sendStatus(204);
     db.deleteChallenge(req.body.challenge);
   } catch (error) {
     log.error(error);
-    res.status(401).send({ error: 'Unauthorized' });
+    res.status(401).send({ error: "Unauthorized" });
   }
 });
 ```
@@ -223,24 +227,26 @@ For subsequent requests, the app again requests a challenge from the server, inc
 SERVER
 
 ```javascript
-import { verifyAttestation, verifyAssertion } from 'node-app-attest';
+import { verifyAttestation, verifyAssertion } from "node-app-attest";
 
 app.post(`${API_PREFIX}/send-message`, (req, res) => {
   try {
     const { authentication } = req.headers;
 
     if (!authentication) {
-      throw new Error('No authentication header');
+      throw new Error("No authentication header");
     }
 
-    const { keyId, assertion } = JSON.parse(Buffer.from(authentication, 'base64').toString());
+    const { keyId, assertion } = JSON.parse(
+      Buffer.from(authentication, "base64").toString(),
+    );
 
     if (keyId === undefined || assertion === undefined) {
-      throw new Error('Invalid authentication');
+      throw new Error("Invalid authentication");
     }
 
     if (!db.findChallenge(req.body.challenge)) {
-      throw new Error('Invalid challenge');
+      throw new Error("Invalid challenge");
     }
 
     db.deleteChallenge(req.body.challenge);
@@ -248,11 +254,11 @@ app.post(`${API_PREFIX}/send-message`, (req, res) => {
     const attestation = db.findAttestation(keyId);
 
     if (!attestation) {
-      throw new Error('No attestation found');
+      throw new Error("No attestation found");
     }
 
     const result = verifyAssertion({
-      assertion: Buffer.from(assertion, 'base64'),
+      assertion: Buffer.from(assertion, "base64"),
       payload: JSON.stringify(req.body),
       publicKey: attestation.publicKey,
       bundleIdentifier: BUNDLE_IDENTIFIER,
@@ -267,7 +273,7 @@ app.post(`${API_PREFIX}/send-message`, (req, res) => {
     res.sendStatus(204);
   } catch (error) {
     log.error(error);
-    res.status(401).send({ error: 'Unauthorized' });
+    res.status(401).send({ error: "Unauthorized" });
   }
 });
 ```
