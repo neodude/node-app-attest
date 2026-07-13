@@ -1,1 +1,1 @@
-{"version":3,"file":"authenticatorData.d.ts","sourceRoot":"","sources":["../src/authenticatorData.js"],"names":[],"mappings":"AA0DA;;;;;;;GAOG;AACH;;;;;;EAqFC"}
+{"version":3,"file":"authenticatorData.d.ts","sourceRoot":"","sources":["../src/authenticatorData.js"],"names":[],"mappings":"AAsDA;;;;;;;;;GASG;AACH,4FAFa;IAAE,kBAAkB,CAAC,EAAE,MAAM,CAAC;IAAC,aAAa,CAAC,EAAE,MAAM,CAAA;CAAE,CAwFnE"}

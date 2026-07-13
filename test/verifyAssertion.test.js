@@ -119,48 +119,54 @@ describe("verifyAssertion", () => {
     }).toThrow("invalid signCount");
   });
 
-  it("returns iOS 27 extensions authenticated by the assertion signature", () => {
-    const { privateKey, publicKey } = generateKeyPairSync("ec", {
-      namedCurve: "prime256v1",
-    });
-    const payload = "signed iOS 27 assertion";
-    const authenticatorData = Buffer.concat([
-      createHash("sha256")
-        .update(`${TEAM_IDENTIFIER}.${BUNDLE_IDENTIFIER}`)
-        .digest(),
-      Buffer.from([0x80]),
-      Buffer.from([0, 0, 0, 1]),
-      cbor.encode({
-        apple_bundle_version_01: "42",
-        apple_validation_category_01: Buffer.from([5, 0, 0, 0]),
-      }),
-    ]);
-    const nonce = createHash("sha256")
-      .update(
-        Buffer.concat([
-          authenticatorData,
-          createHash("sha256").update(payload).digest(),
-        ]),
-      )
-      .digest();
-    const assertion = cbor.encode({
-      authenticatorData,
-      signature: sign("sha256", nonce, privateKey),
-    });
+  it.each([
+    ["with the extension-data flag", 0x80],
+    ["without the extension-data flag", 0x00],
+  ])(
+    "returns iOS 27 extensions authenticated by the assertion signature %s",
+    (_description, flags) => {
+      const { privateKey, publicKey } = generateKeyPairSync("ec", {
+        namedCurve: "prime256v1",
+      });
+      const payload = "signed iOS 27 assertion";
+      const authenticatorData = Buffer.concat([
+        createHash("sha256")
+          .update(`${TEAM_IDENTIFIER}.${BUNDLE_IDENTIFIER}`)
+          .digest(),
+        Buffer.from([flags]),
+        Buffer.from([0, 0, 0, 1]),
+        cbor.encode({
+          apple_bundle_version_01: "42",
+          apple_validation_category_01: Buffer.from([5, 0, 0, 0]),
+        }),
+      ]);
+      const nonce = createHash("sha256")
+        .update(
+          Buffer.concat([
+            authenticatorData,
+            createHash("sha256").update(payload).digest(),
+          ]),
+        )
+        .digest();
+      const assertion = cbor.encode({
+        authenticatorData,
+        signature: sign("sha256", nonce, privateKey),
+      });
 
-    expect(
-      verifyAssertion({
-        assertion,
-        payload,
-        publicKey: publicKey.export({ type: "spki", format: "pem" }),
-        bundleIdentifier: BUNDLE_IDENTIFIER,
-        teamIdentifier: TEAM_IDENTIFIER,
-        signCount: 0,
-      }),
-    ).toEqual({
-      signCount: 1,
-      validationCategory: 5,
-      bundleVersion: "42",
-    });
-  });
+      expect(
+        verifyAssertion({
+          assertion,
+          payload,
+          publicKey: publicKey.export({ type: "spki", format: "pem" }),
+          bundleIdentifier: BUNDLE_IDENTIFIER,
+          teamIdentifier: TEAM_IDENTIFIER,
+          signCount: 0,
+        }),
+      ).toEqual({
+        signCount: 1,
+        validationCategory: 5,
+        bundleVersion: "42",
+      });
+    },
+  );
 });

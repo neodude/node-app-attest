@@ -29,12 +29,8 @@ function parseAppleAppAttestExtensions(value) {
   );
   const hasBundleVersion = Object.hasOwn(value, APPLE_BUNDLE_VERSION_KEY);
 
-  if (hasValidationCategory !== hasBundleVersion) {
+  if (!hasValidationCategory || !hasBundleVersion) {
     throw new Error("invalid authenticator data extensions");
-  }
-
-  if (!hasValidationCategory) {
-    return {};
   }
 
   const validationCategory = value[APPLE_VALIDATION_CATEGORY_KEY];
@@ -63,6 +59,8 @@ function parseAppleAppAttestExtensions(value) {
  * extension map is appended (including Apple’s current guide sample), it is
  * authenticated by the attestation nonce or assertion signature before this
  * parser is called by the public verifiers.
+ *
+ * @returns {{ validationCategory?: number, bundleVersion?: string }}
  */
 export function parseAppleAppAttestAuthenticatorData(
   authenticatorData,
@@ -124,18 +122,19 @@ export function parseAppleAppAttestAuthenticatorData(
     throw new Error("invalid authenticator data extensions");
   }
 
-  const hasParsedExtensionData =
-    hasAttestedCredentialData && decoded.length === 2;
+  const hasParsedExtensionData = hasAttestedCredentialData
+    ? decoded.length === 2
+    : decoded.length === 1;
   const expectedItemCount = hasAttestedCredentialData
     ? hasParsedExtensionData
       ? 2
       : 1
-    : hasExtensionData
+    : hasParsedExtensionData
       ? 1
       : 0;
   if (
     decoded.length !== expectedItemCount ||
-    (hasExtensionData && !hasParsedExtensionData && hasAttestedCredentialData)
+    (hasExtensionData && !hasParsedExtensionData)
   ) {
     throw new Error("invalid authenticator data extensions");
   }

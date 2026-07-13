@@ -144,12 +144,24 @@ describe("parseAppleAppAttestAuthenticatorData", () => {
     ).toThrow("invalid authenticator data extensions");
   });
 
-  it("permits unrelated extension identifiers", () => {
-    expect(
+  it("rejects an extension map without Apple’s required fields", () => {
+    expect(() =>
       parseAppleAppAttestAuthenticatorData(
         withExtensions({ unrelated_extension: true }),
       ),
-    ).toEqual({});
+    ).toThrow("invalid authenticator data extensions");
+  });
+
+  it("permits unrelated extension identifiers alongside Apple’s required fields", () => {
+    expect(
+      parseAppleAppAttestAuthenticatorData(
+        withExtensions({
+          apple_bundle_version_01: "1",
+          apple_validation_category_01: Buffer.from([5, 0, 0, 0]),
+          unrelated_extension: true,
+        }),
+      ),
+    ).toEqual({ validationCategory: 5, bundleVersion: "1" });
   });
 
   it("rejects invalid CBOR and malformed credential lengths", () => {
