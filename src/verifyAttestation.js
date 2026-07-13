@@ -3,11 +3,14 @@ import { createHash, X509Certificate } from "crypto";
 import * as asn1js from "asn1js";
 import * as pkijs from "pkijs";
 
+import { parseAppleAppAttestAuthenticatorData } from "./authenticatorData.js";
+
 const APPLE_APP_ATTESTATION_ROOT_CA = new X509Certificate(
   "-----BEGIN CERTIFICATE-----\nMIICITCCAaegAwIBAgIQC/O+DvHN0uD7jG5yH2IXmDAKBggqhkjOPQQDAzBSMSYwJAYDVQQDDB1BcHBsZSBBcHAgQXR0ZXN0YXRpb24gUm9vdCBDQTETMBEGA1UECgwKQXBwbGUgSW5jLjETMBEGA1UECAwKQ2FsaWZvcm5pYTAeFw0yMDAzMTgxODMyNTNaFw00NTAzMTUwMDAwMDBaMFIxJjAkBgNVBAMMHUFwcGxlIEFwcCBBdHRlc3RhdGlvbiBSb290IENBMRMwEQYDVQQKDApBcHBsZSBJbmMuMRMwEQYDVQQIDApDYWxpZm9ybmlhMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAERTHhmLW07ATaFQIEVwTtT4dyctdhNbJhFs/Ii2FdCgAHGbpphY3+d8qjuDngIN3WVhQUBHAoMeQ/cLiP1sOUtgjqK9auYen1mMEvRq9Sk3Jm5X8U62H+xTD3FE9TgS41o0IwQDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSskRBTM72+aEH/pwyp5frq5eWKoTAOBgNVHQ8BAf8EBAMCAQYwCgYIKoZIzj0EAwMDaAAwZQIwQgFGnByvsiVbpTKwSga0kP0e8EeDS4+sQmTvb7vn53O5+FRXgeLhpJ06ysC5PrOyAjEAp5U4xDgEgllF7En3VcE3iexZZtKeYnpqtijVoyFraWVIyd/dganmrduC1bmTBGwD\n-----END CERTIFICATE-----",
 );
 
 const APPATTESTDEVELOP = Buffer.from("appattestdevelop").toString("hex");
+const APPATTESTSANDBOX = Buffer.from("appattestsandbox").toString("hex");
 const APPATTESTPROD = Buffer.concat([
   Buffer.from("appattest"),
   Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
@@ -180,11 +183,18 @@ function verifyAttestation(params) {
   const aaguid = authData.subarray(37, 53).toString("hex");
 
   /* istanbul ignore if */
-  if (aaguid !== APPATTESTDEVELOP && aaguid !== APPATTESTPROD) {
+  if (
+    aaguid !== APPATTESTDEVELOP &&
+    aaguid !== APPATTESTSANDBOX &&
+    aaguid !== APPATTESTPROD
+  ) {
     throw new Error("aaguid is not valid");
   }
 
-  if (aaguid === APPATTESTDEVELOP && !allowDevelopmentEnvironment) {
+  if (
+    (aaguid === APPATTESTDEVELOP || aaguid === APPATTESTSANDBOX) &&
+    !allowDevelopmentEnvironment
+  ) {
     throw new Error("development environment is not allowed");
   }
 
@@ -197,6 +207,10 @@ function verifyAttestation(params) {
     throw new Error("credentialId does not match");
   }
 
+  const extensions = parseAppleAppAttestAuthenticatorData(authData, {
+    hasAttestedCredentialData: true,
+  });
+
   return {
     keyId,
     publicKey: clientCertificate.publicKey.export({
@@ -205,6 +219,7 @@ function verifyAttestation(params) {
     }),
     receipt: decodedAttestation.attStmt.receipt,
     environment: aaguid === APPATTESTPROD ? "production" : "development",
+    ...extensions,
   };
 }
 

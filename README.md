@@ -52,6 +52,16 @@ const { signCount } = verifyAssertion({
 
 ```
 
+On iOS 27 and later, both verification functions additionally return optional
+`validationCategory` and `bundleVersion` values from Apple’s authenticated
+authenticator-data extensions. These fields are absent for pre-iOS 27 proofs.
+Use them to apply your own distribution policy; for example, an API may accept
+TestFlight, App Store, and enterprise/ad-hoc categories while allowing only
+known bundle versions for enterprise/ad-hoc builds.
+
+Sandbox attestations use Apple’s `appattestsandbox` AAGUID and are treated as a
+development environment, so they remain gated by `allowDevelopmentEnvironment`.
+
 ## Detailed Usage
 
 The full example containing code for the app and for the backend you can find in this repository: https://github.com/uebelack/node-app-attest-example

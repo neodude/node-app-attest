@@ -1,6 +1,8 @@
 import cbor from "cbor";
 import { createHash, createVerify } from "crypto";
 
+import { parseAppleAppAttestAuthenticatorData } from "./authenticatorData.js";
+
 function verifyAssertion(params) {
   const {
     assertion,
@@ -72,10 +74,14 @@ function verifyAssertion(params) {
     throw new Error("invalid signCount");
   }
 
+  const extensions = parseAppleAppAttestAuthenticatorData(authenticatorData, {
+    hasAttestedCredentialData: false,
+  });
+
   // 6. Verify that the embedded challenge in the client data matches the earlier challenge to the client.
   // This step is not covered and needs to be done in the application using this library.
 
-  return { signCount: nextSignCount };
+  return { signCount: nextSignCount, ...extensions };
 }
 
 export default verifyAssertion;
