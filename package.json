@@ -26,7 +26,7 @@
     "format:check": "prettier --check .",
     "format:write": "prettier --write ."
   },
-  "packageManager": "yarn@4.12.0",
+  "packageManager": "yarn@4.18.1",
   "jest": {
     "collectCoverage": true,
     "collectCoverageFrom": [
@@ -42,18 +42,18 @@
     }
   },
   "dependencies": {
-    "asn1js": "^3.0.7",
-    "cbor": "^10.0.11",
-    "pkijs": "^3.3.3"
+    "asn1js": "^3.0.10",
+    "cbor": "^10.0.12",
+    "pkijs": "^3.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@eslint/json": "^1.0.1",
+    "@eslint/json": "^1.2.0",
     "@eslint/markdown": "^7.5.1",
-    "eslint": "^10.0.0",
-    "globals": "^17.3.0",
-    "jest": "^30.2.0",
-    "prettier": "^3.8.1",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "jest": "^30.5.2",
+    "prettier": "^3.9.10",
     "typescript": "^5.9.3"
   }
 }

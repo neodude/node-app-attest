@@ -124,7 +124,7 @@ describe("verifyAssertion", () => {
     ["without the extension-data flag", 0x00],
   ])(
     "returns iOS 27 extensions authenticated by the assertion signature %s",
-    (_description, flags) => {
+    async (_description, flags) => {
       const { privateKey, publicKey } = generateKeyPairSync("ec", {
         namedCurve: "prime256v1",
       });
@@ -135,7 +135,7 @@ describe("verifyAssertion", () => {
           .digest(),
         Buffer.from([flags]),
         Buffer.from([0, 0, 0, 1]),
-        cbor.encode({
+        await cbor.encodeAsync({
           apple_bundle_version_01: "42",
           apple_validation_category_01: Buffer.from([5, 0, 0, 0]),
         }),
@@ -148,7 +148,7 @@ describe("verifyAssertion", () => {
           ]),
         )
         .digest();
-      const assertion = cbor.encode({
+      const assertion = await cbor.encodeAsync({
         authenticatorData,
         signature: sign("sha256", nonce, privateKey),
       });

@@ -9,7 +9,8 @@ const OFFICIAL_IOS_27_AUTHENTICATOR_DATA = Buffer.from(
   "base64",
 );
 
-function withExtensions(extensions) {
+// Collect every encoded chunk; Node 26 stream.read() returns only one buffer.
+async function withExtensions(extensions) {
   const authenticatorData = Buffer.from(OFFICIAL_IOS_27_AUTHENTICATOR_DATA);
   const credentialIdLength = authenticatorData.readUInt16BE(53);
   const credentialDataEnd = 55 + credentialIdLength;
@@ -20,8 +21,8 @@ function withExtensions(extensions) {
   authenticatorData[32] |= 0x80;
   return Buffer.concat([
     authenticatorData.subarray(0, credentialDataEnd),
-    cbor.encode(cosePublicKey),
-    cbor.encode(extensions),
+    await cbor.encodeAsync(cosePublicKey),
+    await cbor.encodeAsync(extensions),
   ]);
 }
 
@@ -51,24 +52,28 @@ describe("parseAppleAppAttestAuthenticatorData", () => {
     ).toEqual({});
   });
 
-  it("rejects a partial iOS 27 extension map", () => {
+  it("rejects a partial iOS 27 extension map", async () => {
+    const authenticatorData = await withExtensions({
+      apple_bundle_version_01: "1",
+    });
+
     expect(() =>
-      parseAppleAppAttestAuthenticatorData(
-        withExtensions({ apple_bundle_version_01: "1" }),
-        { hasAttestedCredentialData: true },
-      ),
+      parseAppleAppAttestAuthenticatorData(authenticatorData, {
+        hasAttestedCredentialData: true,
+      }),
     ).toThrow("invalid authenticator data extensions");
   });
 
-  it("rejects a malformed iOS 27 validation category", () => {
+  it("rejects a malformed iOS 27 validation category", async () => {
+    const authenticatorData = await withExtensions({
+      apple_bundle_version_01: "1",
+      apple_validation_category_01: 1,
+    });
+
     expect(() =>
-      parseAppleAppAttestAuthenticatorData(
-        withExtensions({
-          apple_bundle_version_01: "1",
-          apple_validation_category_01: 1,
-        }),
-        { hasAttestedCredentialData: true },
-      ),
+      parseAppleAppAttestAuthenticatorData(authenticatorData, {
+        hasAttestedCredentialData: true,
+      }),
     ).toThrow("invalid authenticator data extensions");
   });
 
@@ -90,7 +95,7 @@ describe("parseAppleAppAttestAuthenticatorData", () => {
     ).toThrow("invalid authenticator data extensions");
   });
 
-  it("rejects extension data that is missing or contains extra CBOR items", () => {
+  it("rejects extension data that is missing or contains extra CBOR items", async () => {
     const missingExtensionData = Buffer.alloc(37);
     missingExtensionData[32] = 0x80;
     const extraExtensionData = Buffer.concat([
@@ -98,7 +103,9 @@ describe("parseAppleAppAttestAuthenticatorData", () => {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0x80, 0, 0, 0, 0,
       ]),
-      cbor.encode({}, {}),
+      Buffer.concat(
+        await Promise.all([cbor.encodeAsync({}), cbor.encodeAsync({})]),
+      ),
     ]);
 
     for (const authenticatorData of [
@@ -113,10 +120,10 @@ describe("parseAppleAppAttestAuthenticatorData", () => {
     }
   });
 
-  it("rejects a malformed credential public key", () => {
+  it("rejects a malformed credential public key", async () => {
     const authenticatorData = Buffer.concat([
       Buffer.alloc(55),
-      cbor.encode({}),
+      await cbor.encodeAsync({}),
     ]);
     authenticatorData[32] = 0x40;
 
@@ -138,24 +145,28 @@ describe("parseAppleAppAttestAuthenticatorData", () => {
       apple_bundle_version_01: "",
       apple_validation_category_01: Buffer.alloc(4),
     },
-  ])("rejects malformed extension values", (extensions) => {
+  ])("rejects malformed extension values", async (extensions) => {
+    const authenticatorData = await withExtensions(extensions);
+
     expect(() =>
-      parseAppleAppAttestAuthenticatorData(withExtensions(extensions)),
+      parseAppleAppAttestAuthenticatorData(authenticatorData),
     ).toThrow("invalid authenticator data extensions");
   });
 
-  it("rejects an extension map without Apple’s required fields", () => {
+  it("rejects an extension map without Apple’s required fields", async () => {
+    const authenticatorData = await withExtensions({
+      unrelated_extension: true,
+    });
+
     expect(() =>
-      parseAppleAppAttestAuthenticatorData(
-        withExtensions({ unrelated_extension: true }),
-      ),
+      parseAppleAppAttestAuthenticatorData(authenticatorData),
     ).toThrow("invalid authenticator data extensions");
   });
 
-  it("permits unrelated extension identifiers alongside Apple’s required fields", () => {
+  it("permits unrelated extension identifiers alongside Apple’s required fields", async () => {
     expect(
       parseAppleAppAttestAuthenticatorData(
-        withExtensions({
+        await withExtensions({
           apple_bundle_version_01: "1",
           apple_validation_category_01: Buffer.from([5, 0, 0, 0]),
           unrelated_extension: true,
@@ -187,13 +198,13 @@ describe("parseAppleAppAttestAuthenticatorData", () => {
     }
   });
 
-  it("rejects non-object extension maps", () => {
+  it("rejects non-object extension maps", async () => {
     const authenticatorData = Buffer.concat([
       Buffer.from([
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0x80, 0, 0, 0, 0,
       ]),
-      cbor.encode([]),
+      await cbor.encodeAsync([]),
     ]);
 
     expect(() =>

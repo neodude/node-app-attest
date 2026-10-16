@@ -121,106 +121,120 @@ describe("verifyAttestation", () => {
     }).toThrow("invalid attestation");
   });
 
-  it("should verify number of decoded attestations", () => {
+  it("should verify number of decoded attestations", async () => {
+    const attestation = Buffer.concat(
+      await Promise.all([cbor.encodeAsync({}), cbor.encodeAsync({})]),
+    );
+
     expect(() => {
       verifyAttestation({
         bundleIdentifier: BUNDLE_IDENTIFIER,
         teamIdentifier: TEAM_IDENTIFIER,
         allowDevelopmentEnvironment: true,
-        attestation: cbor.encode({}, {}),
+        attestation,
         challenge: CHALLENGE,
         keyId: KEY_ID,
       });
     }).toThrow("number of decoded attestations is not 1");
   });
 
-  it("should verify decoded attestation", () => {
+  it("should verify decoded attestation", async () => {
+    const attestation = await cbor.encodeAsync({});
+
     expect(() => {
       verifyAttestation({
         bundleIdentifier: BUNDLE_IDENTIFIER,
         teamIdentifier: TEAM_IDENTIFIER,
         allowDevelopmentEnvironment: true,
-        attestation: cbor.encode({}),
+        attestation,
         challenge: CHALLENGE,
         keyId: KEY_ID,
       });
     }).toThrow("invalid attestation");
   });
 
-  it("should verify certificates", () => {
+  it("should verify certificates", async () => {
+    const attestation = await cbor.encodeAsync({
+      fmt: "apple-appattest",
+      attStmt: {
+        x5c: [Buffer.from("test"), Buffer.from("test")],
+        receipt: Buffer.from("test"),
+      },
+      authData: Buffer.from("test"),
+    });
+
     expect(() => {
       verifyAttestation({
         bundleIdentifier: BUNDLE_IDENTIFIER,
         teamIdentifier: TEAM_IDENTIFIER,
         allowDevelopmentEnvironment: true,
-        attestation: cbor.encode({
-          fmt: "apple-appattest",
-          attStmt: {
-            x5c: [Buffer.from("test"), Buffer.from("test")],
-            receipt: Buffer.from("test"),
-          },
-          authData: Buffer.from("test"),
-        }),
+        attestation,
         challenge: CHALLENGE,
         keyId: KEY_ID,
       });
     }).toThrow("invalid certificate");
   });
 
-  it("should verify existance of sub CA certificate", () => {
+  it("should verify existance of sub CA certificate", async () => {
+    const attestation = await cbor.encodeAsync({
+      fmt: "apple-appattest",
+      attStmt: {
+        x5c: [CLIENT_CERTIFICATE, CLIENT_CERTIFICATE],
+        receipt: Buffer.from("test"),
+      },
+      authData: Buffer.from("test"),
+    });
+
     expect(() => {
       verifyAttestation({
         bundleIdentifier: BUNDLE_IDENTIFIER,
         teamIdentifier: TEAM_IDENTIFIER,
         allowDevelopmentEnvironment: true,
-        attestation: cbor.encode({
-          fmt: "apple-appattest",
-          attStmt: {
-            x5c: [CLIENT_CERTIFICATE, CLIENT_CERTIFICATE],
-            receipt: Buffer.from("test"),
-          },
-          authData: Buffer.from("test"),
-        }),
+        attestation,
         challenge: CHALLENGE,
         keyId: KEY_ID,
       });
     }).toThrow("no sub CA certificate found");
   });
 
-  it("should verify existance of client certificate", () => {
+  it("should verify existance of client certificate", async () => {
+    const attestation = await cbor.encodeAsync({
+      fmt: "apple-appattest",
+      attStmt: {
+        x5c: [SUB_CA, SUB_CA],
+        receipt: Buffer.from("test"),
+      },
+      authData: Buffer.from("test"),
+    });
+
     expect(() => {
       verifyAttestation({
         bundleIdentifier: BUNDLE_IDENTIFIER,
         teamIdentifier: TEAM_IDENTIFIER,
         allowDevelopmentEnvironment: true,
-        attestation: cbor.encode({
-          fmt: "apple-appattest",
-          attStmt: {
-            x5c: [SUB_CA, SUB_CA],
-            receipt: Buffer.from("test"),
-          },
-          authData: Buffer.from("test"),
-        }),
+        attestation,
         challenge: CHALLENGE,
         keyId: KEY_ID,
       });
     }).toThrow("no client CA certificate found");
   });
 
-  it("should verify sub CA certificate signature", () => {
+  it("should verify sub CA certificate signature", async () => {
+    const attestation = await cbor.encodeAsync({
+      fmt: "apple-appattest",
+      attStmt: {
+        x5c: [CLIENT_CERTIFICATE, SUB_CA_INVALID],
+        receipt: Buffer.from("test"),
+      },
+      authData: Buffer.from("test"),
+    });
+
     expect(() => {
       verifyAttestation({
         bundleIdentifier: BUNDLE_IDENTIFIER,
         teamIdentifier: TEAM_IDENTIFIER,
         allowDevelopmentEnvironment: true,
-        attestation: cbor.encode({
-          fmt: "apple-appattest",
-          attStmt: {
-            x5c: [CLIENT_CERTIFICATE, SUB_CA_INVALID],
-            receipt: Buffer.from("test"),
-          },
-          authData: Buffer.from("test"),
-        }),
+        attestation,
         challenge: CHALLENGE,
         keyId: KEY_ID,
       });
@@ -229,20 +243,22 @@ describe("verifyAttestation", () => {
     );
   });
 
-  it("should verify client certificate signature", () => {
+  it("should verify client certificate signature", async () => {
+    const attestation = await cbor.encodeAsync({
+      fmt: "apple-appattest",
+      attStmt: {
+        x5c: [CLIENT_CERTIFICATE_INVALID, SUB_CA],
+        receipt: Buffer.from("test"),
+      },
+      authData: Buffer.from("test"),
+    });
+
     expect(() => {
       verifyAttestation({
         bundleIdentifier: BUNDLE_IDENTIFIER,
         teamIdentifier: TEAM_IDENTIFIER,
         allowDevelopmentEnvironment: true,
-        attestation: cbor.encode({
-          fmt: "apple-appattest",
-          attStmt: {
-            x5c: [CLIENT_CERTIFICATE_INVALID, SUB_CA],
-            receipt: Buffer.from("test"),
-          },
-          authData: Buffer.from("test"),
-        }),
+        attestation,
         challenge: CHALLENGE,
         keyId: KEY_ID,
       });
